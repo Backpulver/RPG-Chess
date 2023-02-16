@@ -20,6 +20,8 @@ def main():
     clock = pygame.time.Clock()
     screen.fill(pygame.Color("white"))
     gs = chess_engine.GameState()
+    valid_moves = gs.get_valid_moves()
+    move_made = False # so we know when to stop checking for next move is a check
     load_images()
     running = True
     square_selected = () #no selected square -> tuple (row, col)
@@ -29,6 +31,8 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+
+            # mouse handler
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 location = pygame.mouse.get_pos() # (x, y) location of mouse
                 col = location[0] // SQUARE_SIZE
@@ -43,9 +47,23 @@ def main():
                 if len(player_clicks) == 2: # we have 2 legal clicks
                     move = chess_engine.Move(player_clicks[0], player_clicks[1], gs.board)
                     print(move.get_chess_notation())
-                    gs.make_move(move)
+
+                    if move in valid_moves:
+                        gs.make_move(move)
+                        move_made = True
+
                     square_selected = () # move made unselect clicks
                     player_clicks = []
+
+            # key handler
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_z: # undo a move when z is pressed
+                    gs.undo_move()
+                    move_made = True
+
+            if move_made:
+                valid_moves = gs.get_valid_moves()
+                move_made = False
 
         draw_game_state(screen, gs)
         clock.tick(FPS)
