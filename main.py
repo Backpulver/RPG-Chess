@@ -1,16 +1,11 @@
 import pygame
 from rpg_chess.Controller import chess_engine
-from rpg_chess.Data.constants import WIDTH, HEIGHT, SQUARE_SIZE, DIMENSION
-# from rpg_chess.Data.board import Board
+from rpg_chess.Data.constants import *
 
-FPS = 20
 IMAGES = {}
-
-
 def load_images():
-    pieces = ["wP", "wR", "wN", "wB", "wK", "wQ", "bP", "bR", "bN", "bB", "bK", "bQ"]
-    for piece in pieces:
-        IMAGES[piece] = pygame.transform.scale(pygame.image.load("images/" + piece + ".png"), (SQUARE_SIZE, SQUARE_SIZE))
+    for piece in PIECE_NAMES:
+        IMAGES[piece] = pygame.transform.scale(pygame.image.load(f"images/{piece}.png"), (SQUARE_SIZE, SQUARE_SIZE))
 
 # main driver
 def main():

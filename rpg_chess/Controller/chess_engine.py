@@ -9,10 +9,13 @@ class GameState():
             ["--", "--", "--", "bP", "--", "--", "--", "--"],
             ["wP", "wP", "wP", "wP", "wP", "wP", "wP", "wP"],
             ["wR", "wN", "wB", "wQ", "wK", "wB", "wN", "wR"]]
+        
         self.white_to_move = True
         self.move_log = []
         self.move_functions = {"P": self.get_pawn_moves, "R": self.get_rook_moves, "N": self.get_knight_moves, 
                                "B": self.get_bishop_moves, "Q": self.get_queen_moves, "K": self.get_king_moves}
+        self.white_king_location = (7, 4)
+        self.black_king_location = (0, 4)
 
     # takes a move and does it, not working for en passant, castling or pawn promotion
     def make_move(self, move):
@@ -20,6 +23,11 @@ class GameState():
         self.board[move.end_row][move.end_col] = move.piece_moved
         self.move_log.append(move) # keep log so we can undo
         self.white_to_move = not self.white_to_move # swap players
+        #update king position
+        if move.piece_moved == 'wK':
+            self.white_king_location = (move.end_row, move.end_col)
+        elif move.piece_moved == 'bK':
+            self.black_king_location = (move.end_row, move.end_col)
 
     # undo last move
     def undo_move(self):
@@ -28,12 +36,50 @@ class GameState():
             self.board[move.start_row][move.start_col] = move.piece_moved
             self.board[move.end_row][move.end_col] = move.piece_captured
             self.white_to_move = not self.white_to_move
+            #update king position
+            if move.piece_moved == 'wK':
+                self.white_king_location = (move.start_row, move.start_col)
+            elif move.piece_moved == 'bK':
+                self.black_king_location = (move.start_row, move.start_col)
     
+    def is_king_in_check(self):
+        if self.white_to_move:
+            return self.is_square_under_attack(self.white_king_location[0], self.white_king_location[1])
+        else:
+            return self.is_square_under_attack(self.black_king_location[0], self.black_king_location[1])
+
+    def is_square_under_attack(self, row, col):
+        self.white_to_move = not self.white_to_move # to check we must generate opponents moves
+        opponent_moves = self.get_all_possible_moves()
+        self.white_to_move = not self.white_to_move
+
+        for move in opponent_moves:
+            if move.end_row == row and move.end_col == col: # is square under attack 
+                return True
+        return False
+
     # All valid moves
     def get_valid_moves(self):
-        return self.get_all_possible_moves() # for now we wont worry about king being in danger of capture in the next move
+        # greedy algorithm explaied with numbers:
+        moves = self.get_all_possible_moves() # 1) generate all possible moves
 
-    # All moves, but the king can be in check the next turn
+        # 2) for each move we make the move
+        for i in range(len(moves)- 1, -1, -1): # when removing iterate from back to avoid index bugs
+            
+            self.make_move(moves[i])
+            self.white_to_move = not self.white_to_move # after we make a move switch color so we generate opponent moves
+
+            # 3) generate all opponent moves and check if they attack the opposing king
+            if self.is_king_in_check():
+                moves.remove(moves[i]) # 4) not valid move so we remove it
+
+            self.white_to_move = not self.white_to_move # we go to other color so when we undo we keep the right player turn
+            self.undo_move() # undo the move made in this scope
+        
+        return moves
+
+
+    # All moves, but the king can be in check the next turn, returns list of moves
     def get_all_possible_moves(self):
         moves = []
         for row in range(len(self.board)):
