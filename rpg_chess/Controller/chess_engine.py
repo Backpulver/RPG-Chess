@@ -75,19 +75,81 @@ class GameState():
         #add pawn promotions later
 
     def get_rook_moves(self, row, col, moves):
-        pass
+        directions = ((-1, 0), (0, -1), (1, 0), (0, 1)) # up, left, down, right
+        enemy_color = "b" if self.white_to_move else "w"
 
-    def get_knight_moves(self, row, col, moves):
-        pass
+        for d in directions:
+            for i in range(1, 8):
+                end_row = row + d[0] * i
+                end_col = col + d[1] * i
+
+                if 0 <= end_row <= 7 and 0 <= end_col <= 7: #check if is on board
+                    end_pos_piece = self.board[end_row][end_col]
+                    if end_pos_piece == "--":
+                        moves.append(Move((row, col), (end_row, end_col), self.board))
+                    elif end_pos_piece[0] == enemy_color: # can capture piece
+                        moves.append(Move((row, col), (end_row, end_col), self.board))
+                        break
+                    else: # we have a friendly piece
+                        break
+                else: # out of bounds
+                    break
 
     def get_bishop_moves(self, row, col, moves):
-        pass
+        directions = ((-1, -1), (-1, 1), (1, -1), (1, 1)) # up and left, up and right, down and left, down and right
+        enemy_color = "b" if self.white_to_move else "w"
 
+        for d in directions:
+            for i in range(1, 8):
+                end_row = row + d[0] * i
+                end_col = col + d[1] * i
+
+                if 0 <= end_row <= 7 and 0 <= end_col <= 7: #check if is on board
+                    end_pos_piece = self.board[end_row][end_col]
+                    if end_pos_piece == "--":
+                        moves.append(Move((row, col), (end_row, end_col), self.board))
+                    elif end_pos_piece[0] == enemy_color: # can capture piece
+                        moves.append(Move((row, col), (end_row, end_col), self.board))
+                        break
+                    else: # we have a friendly piece
+                        break
+                else: # out of bounds
+                    break
+    
     def get_queen_moves(self, row, col, moves):
-        pass
+        self.get_rook_moves(row, col, moves)
+        self.get_bishop_moves(row, col, moves)
+
+    def get_knight_moves(self, row, col, moves):
+        directions = ((-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2), (2, -1), (2, 1)) # end me if this doesnt work again
+        enemy_color = "b" if self.white_to_move else "w"
+
+        for d in directions:
+            end_row = row + d[0]
+            end_col = col + d[1]
+
+            if 0 <= end_row <= 7 and 0 <= end_col <= 7: #check if is on board
+                end_pos_piece = self.board[end_row][end_col]
+                if end_pos_piece == "--":
+                    moves.append(Move((row, col), (end_row, end_col), self.board))
+                elif end_pos_piece[0] == enemy_color: # can capture piece
+                    moves.append(Move((row, col), (end_row, end_col), self.board))
 
     def get_king_moves(self, row, col, moves):
-        pass
+        directions = ((-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1))
+        enemy_color = "b" if self.white_to_move else "w"
+
+        for i in range(8):
+            end_row = row + directions[i][0]
+            end_col = col + directions[i][1]
+
+            if 0 <= end_row <= 7 and 0 <= end_col <= 7: #check if is on board
+                end_pos_piece = self.board[end_row][end_col]
+                if end_pos_piece == "--":
+                    moves.append(Move((row, col), (end_row, end_col), self.board))
+                elif end_pos_piece[0] == enemy_color: # can capture piece
+                    moves.append(Move((row, col), (end_row, end_col), self.board))
+        #to do
 
 
 class Move():
@@ -108,7 +170,7 @@ class Move():
         self.piece_moved = board[self.start_row][self.start_col]
         self.piece_captured = board[self.end_row][self.end_col]
         self.move_id = self.start_row * 1000 + self.start_col * 100 + self.end_row * 10 + self.end_col
-        print(self.move_id)
+        # print(self.move_id)
 
     # override the = 
     def __eq__(self, other):
