@@ -51,9 +51,10 @@ def main():
                     if move in valid_moves:
                         gs.make_move(move)
                         move_made = True
-
-                    square_selected = () # move made unselect clicks
-                    player_clicks = []
+                        square_selected = () # move made unselect clicks
+                        player_clicks = []
+                    else: # fix for clicks if invalid move (we used to click 2 times)
+                        player_clicks = [square_selected]
 
             # key handler
             elif event.type == pygame.KEYDOWN:
