@@ -43,12 +43,13 @@ def main():
                     move = chess_engine.Move(player_clicks[0], player_clicks[1], gs.board)
                     print(move.get_chess_notation())
 
-                    if move in valid_moves:
-                        gs.make_move(move)
-                        move_made = True
-                        square_selected = () # move made unselect clicks
-                        player_clicks = []
-                    else: # fix for clicks if invalid move (we used to click 2 times)
+                    for i in range(len(valid_moves)):
+                        if move == valid_moves[i]:
+                            gs.make_move(valid_moves[i])
+                            move_made = True
+                            square_selected = () # move made unselect clicks
+                            player_clicks = []
+                    if not move_made: # fix for clicks if invalid move (we used to click 2 times)
                         player_clicks = [square_selected]
 
             # key handler
@@ -65,11 +66,9 @@ def main():
         clock.tick(FPS)
         pygame.display.flip()
 
-
 def draw_game_state(screen, gs):
     draw_board(screen)  # draw squares
     draw_pieces(screen, gs.board)
-
 
 def draw_board(screen):
     # remainder 0 for white (brown), 1 for black (gray)
@@ -79,7 +78,6 @@ def draw_board(screen):
             color = colors[((row + col) % 2)]
             pygame.draw.rect(screen, color, pygame.Rect(
                 col*SQUARE_SIZE, row*SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
-
 
 def draw_pieces(screen, board):
     for row in range(DIMENSION):

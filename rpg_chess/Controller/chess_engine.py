@@ -6,7 +6,7 @@ class GameState():
             ["--", "--", "--", "--", "--", "--", "--", "--"],
             ["--", "--", "--", "--", "--", "--", "--", "--"],
             ["--", "--", "--", "--", "--", "--", "--", "--"],
-            ["--", "--", "--", "bP", "--", "--", "--", "--"],
+            ["--", "--", "--", "--", "--", "--", "--", "--"],
             ["wP", "wP", "wP", "wP", "wP", "wP", "wP", "wP"],
             ["wR", "wN", "wB", "wQ", "wK", "wB", "wN", "wR"]]
         
@@ -16,6 +16,10 @@ class GameState():
                                "B": self.get_bishop_moves, "Q": self.get_queen_moves, "K": self.get_king_moves}
         self.white_king_location = (7, 4)
         self.black_king_location = (0, 4)
+        self.checkmate = False
+        self.stalemate = False
+
+        self.enpassant_possible = () # coordinates where an enpassant capture is possible
 
     # takes a move and does it, not working for en passant, castling or pawn promotion
     def make_move(self, move):
@@ -23,11 +27,25 @@ class GameState():
         self.board[move.end_row][move.end_col] = move.piece_moved
         self.move_log.append(move) # keep log so we can undo
         self.white_to_move = not self.white_to_move # swap players
-        #update king position
+        # update king position
         if move.piece_moved == 'wK':
             self.white_king_location = (move.end_row, move.end_col)
         elif move.piece_moved == 'bK':
             self.black_king_location = (move.end_row, move.end_col)
+
+        # pawn promotion move
+        if move.is_pawn_promotion:
+            self.board[move.end_row][move.end_col] = move.piece_moved[0] + "Q"
+
+        # enpassant move
+        if move.is_enpassant:
+            self.board[move.start_row][move.end_col] = "--" # remove the captured pawn from the board
+
+        # update enpassant_possible
+        if move.piece_moved[1] == "P" and abs(move.start_row - move.end_row) == 2: # a pawn has moved 2 squares
+            self.enpassant_possible = ((move.start_row + move.end_row) // 2, move.start_col)
+        else: # other move is made
+            self.enpassant_possible = ()
 
     # undo last move
     def undo_move(self):
@@ -36,11 +54,19 @@ class GameState():
             self.board[move.start_row][move.start_col] = move.piece_moved
             self.board[move.end_row][move.end_col] = move.piece_captured
             self.white_to_move = not self.white_to_move
-            #update king position
+            #update king position if needed
             if move.piece_moved == 'wK':
                 self.white_king_location = (move.start_row, move.start_col)
             elif move.piece_moved == 'bK':
                 self.black_king_location = (move.start_row, move.start_col)
+            # undo enpassant
+            if move.is_enpassant:
+                self.board[move.end_row][move.end_col] = "--"
+                self.board[move.start_row][move.end_col] = move.piece_captured
+                self.enpassant_possible = (move.end_row, move.end_col)
+            # undo 2 square pawn advance
+            if move.piece_moved[1] == "P" and abs(move.start_row - move.end_row) == 2:
+                self.enpassant_possible = ()
     
     def is_king_in_check(self):
         if self.white_to_move:
@@ -60,12 +86,14 @@ class GameState():
 
     # All valid moves
     def get_valid_moves(self):
-        # greedy algorithm explaied with numbers:
+        temp_enpassant_possible = self.enpassant_possible # store info about enpassant in current position
+
+        # all moves + considering king in check for next turn, greedy algorithm explained with numbers
         moves = self.get_all_possible_moves() # 1) generate all possible moves
 
         # 2) for each move we make the move
         for i in range(len(moves)- 1, -1, -1): # when removing iterate from back to avoid index bugs
-            
+
             self.make_move(moves[i])
             self.white_to_move = not self.white_to_move # after we make a move switch color so we generate opponent moves
 
@@ -75,11 +103,20 @@ class GameState():
 
             self.white_to_move = not self.white_to_move # we go to other color so when we undo we keep the right player turn
             self.undo_move() # undo the move made in this scope
-        
+
+        if len(moves) == 0: # we cannot move => checkmate or stalemate
+            if self.is_king_in_check():
+                self.checkmate = True
+            else:
+                self.stalemate = True
+        else: # if we undo a losing move
+            self.checkmate = False
+            self.stalemate = False
+            
+        self.enpassant_possible = temp_enpassant_possible # after undo reset enpassant to initial state
         return moves
 
-
-    # All moves, but the king can be in check the next turn, returns list of moves
+    # All moves, not considering king in check for next turn, returns list of moves
     def get_all_possible_moves(self):
         moves = []
         for row in range(len(self.board)):
@@ -102,9 +139,14 @@ class GameState():
             if col - 1 >= 0: # capture to the left
                 if self.board[row - 1][col - 1][0] == "b":
                     moves.append(Move((row, col), (row - 1, col - 1), self.board))
+                elif (row - 1, col - 1) == self.enpassant_possible: # capture enpassant to the left
+                    moves.append(Move((row, col), (row - 1, col - 1), self.board, is_enpassant_move=True))
             if col + 1 <= 7: # capture to the right
                 if self.board[row - 1][col + 1][0] == "b":
                     moves.append(Move((row, col), (row - 1, col + 1), self.board))
+                elif (row - 1, col + 1) == self.enpassant_possible: # capture enpassant to the right
+                    moves.append(Move((row, col), (row - 1, col + 1), self.board, is_enpassant_move=True))
+
         else: # black to move
             
             if self.board[row + 1][col] == "--": # move 1 square forward
@@ -115,9 +157,13 @@ class GameState():
             if col - 1 >= 0: # capture to the left
                 if self.board[row + 1][col - 1][0] == "w":
                     moves.append(Move((row, col), (row + 1, col - 1), self.board))
+                elif (row + 1, col - 1) == self.enpassant_possible: # capture enpassant to the left
+                    moves.append(Move((row, col), (row + 1, col - 1), self.board, is_enpassant_move=True))
             if col + 1 <= 7: # capture to the right
                 if self.board[row + 1][col + 1][0] == "w":
                     moves.append(Move((row, col), (row + 1, col + 1), self.board))
+                elif (row + 1, col + 1) == self.enpassant_possible: # capture enpassant to the right
+                    moves.append(Move((row, col), (row + 1, col + 1), self.board, is_enpassant_move=True))
         #add pawn promotions later
 
     def get_rook_moves(self, row, col, moves):
@@ -185,7 +231,7 @@ class GameState():
         directions = ((-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1))
         enemy_color = "b" if self.white_to_move else "w"
 
-        for i in range(8):
+        for i in range(len(directions)):
             end_row = row + directions[i][0]
             end_col = col + directions[i][1]
 
@@ -208,13 +254,20 @@ class Move():
 
     cols_to_files = {v: k for k, v in files_to_cols.items()}
 
-    def __init__(self, start_square, end_square, board):
+    def __init__(self, start_square, end_square, board, is_enpassant_move=False):
         self.start_row = start_square[0]
         self.start_col = start_square[1]
         self.end_row = end_square[0]
         self.end_col = end_square[1]
         self.piece_moved = board[self.start_row][self.start_col]
         self.piece_captured = board[self.end_row][self.end_col]
+        # pawn promotion
+        self.is_pawn_promotion = (self.piece_moved == "wP" and self.end_row == 0) or (self.piece_moved == "bP" and self.end_row == 7)
+        # enpassant
+        self.is_enpassant = is_enpassant_move
+        if self.is_enpassant:
+            self.piece_captured = "wP" if self.piece_moved == "bP" else "bP"
+
         self.move_id = self.start_row * 1000 + self.start_col * 100 + self.end_row * 10 + self.end_col
         # print(self.move_id)
 
