@@ -57,17 +57,39 @@ def main():
                 if event.key == pygame.K_z: # undo a move when z is pressed
                     gs.undo_move()
                     move_made = True
+                if event.key == pygame.K_r: # reset the board when r is pressed
+                    gs = chess_engine.GameState()
+                    valid_moves = gs.get_valid_moves()
+                    square_selected = ()
+                    player_clicks = []
+                    move_made = False
 
             if move_made:
                 valid_moves = gs.get_valid_moves()
                 move_made = False
 
-        draw_game_state(screen, gs)
+        draw_game_state(screen, gs, valid_moves, square_selected)
         clock.tick(FPS)
         pygame.display.flip()
 
-def draw_game_state(screen, gs):
+def highlight_squares(screen, gs, valid_moves, square_selected):
+    if square_selected != ():
+        row, col = square_selected
+        if gs.board[row][col][0] == ("w" if gs.white_to_move else "b"):
+            # highlight selected square
+            surface = pygame.Surface((SQUARE_SIZE, SQUARE_SIZE))
+            surface.set_alpha(250) # transperancy value 0 for transperant to 255 
+            surface.fill(pygame.Color(BLUE))
+            screen.blit(surface, (col * SQUARE_SIZE, row * SQUARE_SIZE))
+            #highlight moves from figure in square
+            surface.fill(pygame.Color(GREEN))
+            for move in valid_moves:
+                if move.start_row == row and move.start_col == col:
+                    screen.blit(surface, (move.end_col * SQUARE_SIZE, move.end_row * SQUARE_SIZE))
+
+def draw_game_state(screen, gs, valid_moves, square_selected):
     draw_board(screen)  # draw squares
+    highlight_squares(screen, gs, valid_moves, square_selected)
     draw_pieces(screen, gs.board)
 
 def draw_board(screen):
