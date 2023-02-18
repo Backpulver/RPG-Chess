@@ -56,7 +56,7 @@ class GameState:
                 self.board[move.end_row][move.end_col + 1] = "--" # delete the old rook
             else: # queenside castle
                 self.board[move.end_row][move.end_col + 1] = self.board[move.end_row][move.end_col - 2] # copy the rook 2 squares next to king
-                self.board[move.end_row][move.end_col - 2] # delete the old rook
+                self.board[move.end_row][move.end_col - 2] = "--" # delete the old rook
 
         # update castling permissions - rook or king move
         self.update_castle_rights(move)
