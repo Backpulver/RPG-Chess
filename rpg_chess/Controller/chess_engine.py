@@ -23,6 +23,9 @@ class GameState:
         self.castle_rights_log = [CastleRights(self.current_castling_rights.white_king_side, self.current_castling_rights.black_king_side,
                                                self.current_castling_rights.white_queen_side, self.current_castling_rights.black_queen_side)]
 
+    def get_flipped_board(self): # not used currently
+        return [row[::-1] for row in self.board[::-1]]
+
     # takes a move and does it, not working for en passant, castling or pawn promotion
     def make_move(self, move):
         self.board[move.start_row][move.start_col] = "--"
